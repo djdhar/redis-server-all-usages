@@ -1,11 +1,16 @@
 package com.redis.all.controller;
 
+import com.redis.all.dto.StreamListenRequest;
+import com.redis.all.dto.StreamProduceRequest;
 import com.redis.all.pubsub.publisher.RedisMessagePublisher;
+import com.redis.all.stream.listener.StreamListenerService;
+import com.redis.all.stream.producer.StreamProducerService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,12 +20,19 @@ public class RedisApiController {
 
     RedisTemplate<String, Object> redisTemplate;
     RedisMessagePublisher redisMessagePublisher;
+    StreamProducerService streamProducerService;
+    StreamListenerService streamListenerService;
     private static final String REDIS = "redis";
     private static final String REDIS_SAMPLE_KEY = "redis_key";
 
-    public RedisApiController(RedisTemplate<String, Object> redisTemplate, RedisMessagePublisher redisMessagePublisher) {
+    public RedisApiController(RedisTemplate<String, Object> redisTemplate,
+                              RedisMessagePublisher redisMessagePublisher,
+                              StreamProducerService streamProducerService,
+                              StreamListenerService streamListenerService) {
         this.redisTemplate = redisTemplate;
         this.redisMessagePublisher = redisMessagePublisher;
+        this.streamProducerService = streamProducerService;
+        this.streamListenerService = streamListenerService;
     }
 
     @GetMapping("/sample/api/{val}")
@@ -55,6 +67,20 @@ public class RedisApiController {
             publishResult.put(i,result);
         }
         return publishResult;
+    }
+
+    @PostMapping("/producestream")
+    public Map<String, Object> produceStream(@RequestBody StreamProduceRequest streamProduceRequest) {
+        Integer numberOfObjects = streamProduceRequest.getNumberOfObjects();
+        return streamProducerService.produceMessagesToStream(numberOfObjects);
+    }
+
+    @PostMapping("/listenstream")
+    public Map<String, Object> listenStream(@RequestBody StreamListenRequest streamListenRequest) {
+        Integer batchSize = streamListenRequest.getBatchSize();
+        String consumerGroup = streamListenRequest.getConsumerGroup();
+        String consumerName = streamListenRequest.getConsumerName();
+        return streamListenerService.listenStreamMessages(consumerGroup, consumerName, batchSize);
     }
 
 }
