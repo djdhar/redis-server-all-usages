@@ -1,5 +1,8 @@
 package com.redis.all.controller;
 
+import com.redis.all.dbops.model.MyDocument;
+import com.redis.all.dbops.service.MyDocumentService;
+import com.redis.all.dto.MyDocumentRequest;
 import com.redis.all.dto.StreamListenRequest;
 import com.redis.all.dto.StreamProduceRequest;
 import com.redis.all.pubsub.publisher.RedisMessagePublisher;
@@ -7,6 +10,8 @@ import com.redis.all.stream.listener.StreamListenerService;
 import com.redis.all.stream.producer.StreamProducerService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,17 +27,20 @@ public class RedisApiController {
     RedisMessagePublisher redisMessagePublisher;
     StreamProducerService streamProducerService;
     StreamListenerService streamListenerService;
+    MyDocumentService myDocumentService;
     private static final String REDIS = "redis";
     private static final String REDIS_SAMPLE_KEY = "redis_key";
 
     public RedisApiController(RedisTemplate<String, Object> redisTemplate,
                               RedisMessagePublisher redisMessagePublisher,
                               StreamProducerService streamProducerService,
-                              StreamListenerService streamListenerService) {
+                              StreamListenerService streamListenerService,
+                              MyDocumentService myDocumentService) {
         this.redisTemplate = redisTemplate;
         this.redisMessagePublisher = redisMessagePublisher;
         this.streamProducerService = streamProducerService;
         this.streamListenerService = streamListenerService;
+        this.myDocumentService = myDocumentService;
     }
 
     @GetMapping("/sample/api/{val}")
@@ -81,6 +89,30 @@ public class RedisApiController {
         String consumerGroup = streamListenRequest.getConsumerGroup();
         String consumerName = streamListenRequest.getConsumerName();
         return streamListenerService.listenStreamMessages(consumerGroup, consumerName, batchSize);
+    }
+
+
+    @PostMapping("/mydocument")
+    public MyDocument saveDocument(@RequestBody MyDocumentRequest myDocumentRequest) {
+        MyDocument myDocument = new MyDocument();
+        myDocument.setContent(myDocumentRequest.getContent());
+        return myDocumentService.saveDocument(myDocument);
+    }
+
+    @GetMapping("/mydocument/{id}")
+    public MyDocument getDocument(@PathVariable String id) {
+        return myDocumentService.getDocumentById(id);
+    }
+
+    @PutMapping("/mydocument/{id}")
+    public MyDocument updateDocument(@PathVariable String id, @RequestBody MyDocumentRequest myDocumentRequest) {
+        return myDocumentService.updateDocument(myDocumentRequest.getContent(), id);
+    }
+
+    @DeleteMapping("/mydocument/{id}")
+    public Map<String, Object> deleteDocument(@PathVariable String id) {
+        myDocumentService.deleteDocument(id);
+        return Map.of("deletedDocId", id);
     }
 
 }
