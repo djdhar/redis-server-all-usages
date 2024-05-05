@@ -1,22 +1,26 @@
 package com.redis.all.controller;
 
+import com.redis.all.pubsub.publisher.RedisMessagePublisher;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
 public class RedisApiController {
 
     RedisTemplate<String, Object> redisTemplate;
+    RedisMessagePublisher redisMessagePublisher;
     private static final String REDIS = "redis";
     private static final String REDIS_SAMPLE_KEY = "redis_key";
 
-    public RedisApiController(RedisTemplate<String, Object> redisTemplate) {
+    public RedisApiController(RedisTemplate<String, Object> redisTemplate, RedisMessagePublisher redisMessagePublisher) {
         this.redisTemplate = redisTemplate;
+        this.redisMessagePublisher = redisMessagePublisher;
     }
 
     @GetMapping("/sample/api/{val}")
@@ -41,6 +45,16 @@ public class RedisApiController {
 
     private static Map<String, Object> createRedisValueAsMapObject(String val) {
         return Map.of(REDIS, val);
+    }
+
+    @GetMapping("/pubsub")
+    public Map<Integer, Object> startStreaming() {
+        Map<Integer, Object> publishResult = new HashMap<>();
+        for( int i = 0; i < 100; i++ ) {
+            Long result = redisMessagePublisher.publishMessage(String.valueOf(i));
+            publishResult.put(i,result);
+        }
+        return publishResult;
     }
 
 }
